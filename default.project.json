@@ -1,0 +1,39 @@
+{
+  "name": "SimpleQuestKit",
+  "tree": {
+    "$className": "DataModel",
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "SimpleQuestKit": {
+        "$path": "src/ReplicatedStorage/SimpleQuestKit"
+      }
+    },
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "SimpleQuestKitServer": {
+        "$path": "src/ServerScriptService/SimpleQuestKitServer"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "SimpleQuestKitClient": {
+          "$path": "src/StarterPlayer/StarterPlayerScripts/SimpleQuestKitClient"
+        }
+      }
+    },
+    "StarterGui": {
+      "$className": "StarterGui",
+      "SimpleQuestKitUI": {
+        "$path": "src/StarterGui/SimpleQuestKitUI"
+      }
+    },
+    "Workspace": {
+      "$className": "Workspace",
+      "SimpleQuestDemo": {
+        "$path": "src/Workspace/SimpleQuestDemo"
+      }
+    }
+  }
+}
