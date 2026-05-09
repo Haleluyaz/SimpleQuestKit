@@ -19,14 +19,9 @@ Open Roblox Studio > Plugins > Rojo > Connect.
 
 ## 4. Test
 
-Press Play and check Output:
+Press Play. You should see a `Quests` button on the right side of the screen. The kit also creates a small demo scene if the objects do not already exist.
 
-```text
-[SimpleQuestKit] Server bootstrap loaded
-[SimpleQuestKit] QuestController loaded
-```
-
-You should see a `Quests` button on the right side of the screen. The kit also creates a small demo scene if the objects do not already exist.
+`Debug = false` by default, so normal startup logs are hidden. If you want development logs, set `Debug = true` in `DemoConfig.lua`.
 
 ## 5. Demo Objects
 
@@ -56,13 +51,27 @@ Do not expose your own progress RemoteEvent to clients unless the server fully v
 
 ## 7. DataStore Notes
 
-Progress is saved in `SimpleQuestKit_v1`. Studio persistence requires:
+Memory Mode is enabled by default for clean Studio testing:
+
+```lua
+UseDataStore = false
+```
+
+To enable production persistence, edit `DemoConfig.lua`:
+
+```lua
+UseDataStore = true,
+DataStoreName = "SimpleQuestKit_PlayerData_v1",
+AutoSaveInterval = 60,
+```
+
+Studio persistence requires:
 
 1. Game Settings > Security.
 2. Enable Studio Access to API Services.
 3. Publish the place before testing DataStores.
 
-If DataStore calls fail, the kit still works in memory during the current play session.
+If DataStore initialization, loading, or saving fails, the kit warns clearly and falls back to Memory Mode when possible. Saves use protected calls and retry up to 3 times. Saved records include `DataVersion = 1`.
 
 ## 8. Reskinning
 

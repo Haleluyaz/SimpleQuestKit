@@ -6,6 +6,7 @@ local kit = ReplicatedStorage:WaitForChild("SimpleQuestKit")
 local DemoConfig = require(kit:WaitForChild("Config"):WaitForChild("DemoConfig"))
 local QuestConfig = require(kit:WaitForChild("Config"):WaitForChild("QuestConfig"))
 local QuestUtil = require(kit:WaitForChild("Shared"):WaitForChild("QuestUtil"))
+local Debug = DemoConfig.Debug == true
 
 local QuestService = require(script.Parent:WaitForChild("QuestService"))
 
@@ -172,7 +173,9 @@ function QuestObjectService:Init()
     self:_setupExisting(tags.NPC or "QuestNPC", self._setupPromptObject)
     self:_setupExisting(tags.Interactable or "QuestInteractable", self._setupPromptObject)
 
-    print("[SimpleQuestKit] QuestObjectService initialized")
+    if Debug then
+        print("[SimpleQuestKit] QuestObjectService initialized")
+    end
 end
 
 return QuestObjectService

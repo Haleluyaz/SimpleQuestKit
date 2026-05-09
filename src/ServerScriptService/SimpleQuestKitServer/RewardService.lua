@@ -1,7 +1,14 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local DemoConfig = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Config"):WaitForChild("DemoConfig"))
+local Debug = DemoConfig.Debug == true
+
 local RewardService = {}
 
 function RewardService:Init()
-    print("[SimpleQuestKit] RewardService initialized")
+    if Debug then
+        print("[SimpleQuestKit] RewardService initialized")
+    end
 end
 
 function RewardService:GrantRewards(player, rewards)

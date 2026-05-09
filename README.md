@@ -1,32 +1,126 @@
 # Simple Quest Kit for Roblox
 
-A small, Rojo-ready Roblox quest kit for beginner and intermediate developers.
+Simple Quest Kit is a small, server-authoritative quest system for Roblox games. It is built for beginner and intermediate developers who want a clean quest board, demo objects, rewards, daily quests, and optional DataStore saving without building a full game framework.
 
-## Features
+The kit is Rojo-ready, works in Studio Play Solo, and includes a lightweight Starter Village showcase.
 
-- Config-based quests
-- NPC quests
-- Daily quests
-- Collect quests
-- Playtime quests
-- Visit-area quests
-- Interact quests
-- Custom event quests
-- Server-authoritative progress
-- DataStore save/load
-- Mobile-friendly UI
-- Demo place: Starter Village Quest Demo
+## What You Get
 
-## Quick Start
+- Config-driven quests in one `QuestConfig.lua` file
+- Quest types: `Collect`, `Playtime`, `VisitArea`, `Interact`, `CustomEvent`, and `Daily`
+- Server API for adding progress, completing quests, claiming rewards, and reading player data
+- Mobile-friendly quest UI
+- Guide NPC, coins, ForestZone, MagicCrystal, TreasureChest, QuestBoard, and labeled demo signs
+- Memory Mode by default for easy Studio testing
+- Optional production DataStore persistence
+- Beginner-friendly documentation and example snippets
+- Release files: changelog, license placeholder, packaging guide, and testing checklist
+
+## Quick Start With Rojo
 
 ```bash
 cd SimpleQuestKit
 rojo serve
 ```
 
-Then open Roblox Studio, open the Rojo plugin, and connect to the local server.
+Open Roblox Studio, open the Rojo plugin, connect to the local server, then press Play.
 
-Press Play. The kit creates a lightweight demo village with coins, a Guide NPC, a ForestZone, a MagicCrystal, a TreasureChest, a QuestBoard, and a portal endpoint.
+You should see the Starter Village demo and a `Quests` button. Talk to the Guide NPC, collect coins, open the quest board, and claim rewards.
+
+## Manual Studio Install
+
+If you are not using Rojo, copy these folders into the matching Roblox Studio services:
+
+| Folder | Studio Location |
+| --- | --- |
+| `src/ReplicatedStorage/SimpleQuestKit` | `ReplicatedStorage.SimpleQuestKit` |
+| `src/ServerScriptService/SimpleQuestKitServer` | `ServerScriptService.SimpleQuestKitServer` |
+| `src/StarterPlayer/StarterPlayerScripts/SimpleQuestKitClient` | `StarterPlayer.StarterPlayerScripts.SimpleQuestKitClient` |
+| `src/Workspace/SimpleQuestDemo` | `Workspace.SimpleQuestDemo` |
+| `src/StarterGui/SimpleQuestKitUI` | `StarterGui.SimpleQuestKitUI` |
+
+For full installation steps, read [docs/INSTALLATION.md](docs/INSTALLATION.md).
+
+## Important Files
+
+```text
+ReplicatedStorage/SimpleQuestKit/Config/QuestConfig.lua
+ReplicatedStorage/SimpleQuestKit/Config/DemoConfig.lua
+ServerScriptService/SimpleQuestKitServer/QuestService.lua
+ServerScriptService/SimpleQuestKitServer/QuestDataService.lua
+StarterPlayer/StarterPlayerScripts/SimpleQuestKitClient/QuestUIController.client.lua
+```
+
+## Server API
+
+Use the API from trusted server scripts only:
+
+```lua
+local QuestService = require(game.ServerScriptService.SimpleQuestKitServer.QuestService)
+
+QuestService:AddProgress(player, "welcome_collect_coins", 1)
+QuestService:SetProgress(player, "welcome_collect_coins", 5)
+QuestService:CompleteQuest(player, "welcome_collect_coins")
+QuestService:ClaimReward(player, "welcome_collect_coins")
+QuestService:GetPlayerQuestData(player)
+QuestService:ResetDailyQuests(player)
+```
+
+Full API reference: [docs/API.md](docs/API.md).
+
+## Adding Quests
+
+Most new quests only need two things:
+
+1. Add a quest entry in `QuestConfig.lua`.
+2. Add progress from a trusted server script or a tagged demo object.
+
+Start here: [docs/ADD_NEW_QUEST.md](docs/ADD_NEW_QUEST.md).
+
+## DataStore
+
+DataStore is off by default so Play Solo does not show publishing/API errors.
+
+To enable production saving, edit `DemoConfig.lua`:
+
+```lua
+UseDataStore = true,
+DataStoreName = "SimpleQuestKit_PlayerData_v1",
+AutoSaveInterval = 60,
+```
+
+Then publish the place and enable Studio API Services. More details are in [docs/INSTALLATION.md](docs/INSTALLATION.md) and [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
+
+## Packaging As A Model Or Plugin
+
+For a model, put the kit folders into a clean place, test Play Solo, then publish the model from Studio.
+
+For a plugin, create a toolbar button that inserts these folders into the correct services:
+
+- `ReplicatedStorage.SimpleQuestKit`
+- `ServerScriptService.SimpleQuestKitServer`
+- `StarterPlayer.StarterPlayerScripts.SimpleQuestKitClient`
+- optional `Workspace.SimpleQuestDemo`
+- optional `StarterGui.SimpleQuestKitUI`
+
+See [docs/INSTALLATION.md](docs/INSTALLATION.md) for packaging notes.
+
+Detailed `.rbxm`, `.rbxlx`, and plugin packaging steps are in [docs/PACKAGING.md](docs/PACKAGING.md).
+
+## Troubleshooting
+
+Common fixes are documented in [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md), including:
+
+- quest UI not opening
+- DataStore publish/API errors
+- quests not progressing
+- collect coins not working
+- rewards not appearing
+- remote mismatch or infinite yield warnings
+
+## Testing Checklist
+
+Before shipping, walk through [docs/TESTING_CHECKLIST.md](docs/TESTING_CHECKLIST.md). It covers quest progress, claiming, anti-exploit behavior, DataStore persistence, mobile UI, and clean Output checks.
 
 ## Build
 
@@ -34,80 +128,11 @@ Press Play. The kit creates a lightweight demo village with coins, a Guide NPC, 
 rojo build -o SimpleQuestKit.rbxlx
 ```
 
-## Included Quest Types
+The `.rbxlx` build is ignored by git by default.
 
-- `Collect`
-- `Playtime`
-- `VisitArea`
-- `Interact`
-- `CustomEvent`
-- `Daily`
+## Release Files
 
-## Server API
-
-Use these functions from trusted server scripts:
-
-```lua
-local QuestService = require(game.ServerScriptService.SimpleQuestKitServer.QuestService)
-
-QuestService:AddProgress(player, questId, amount)
-QuestService:SetProgress(player, questId, amount)
-QuestService:CompleteQuest(player, questId)
-QuestService:ClaimReward(player, questId)
-QuestService:GetPlayerQuestData(player)
-QuestService:ResetDailyQuests(player)
-```
-
-The client can fetch quest data and request reward claims, but it cannot award itself progress or rewards.
-
-## Configuration
-
-Edit quests in:
-
-```text
-src/ReplicatedStorage/SimpleQuestKit/Config/QuestConfig.lua
-```
-
-Quest data should stay in config. Demo objects use CollectionService tags and object attributes:
-
-- `QuestCoin` with `QuestTarget = "Coin"`
-- `QuestZone` with `QuestTarget = "ForestZone"`
-- `QuestNPC` with `QuestTarget = "GuideNPC"`
-- `QuestInteractable` with `QuestTarget`, `CustomEvent`, and `ActionText` as needed
-
-## Demo Quest IDs
-
-- `welcome_collect_coins`
-- `visit_forest`
-- `talk_to_guide`
-- `crystal_power`
-- `playtime_beginner`
-- `custom_open_chest`
-- `daily_collect_10_coins`
-
-## Testing Checklist
-
-- Start `rojo serve` and connect from Studio.
-- Press Play Solo and confirm the quest button appears.
-- Collect 5 coins and claim `First Steps`.
-- Touch `ForestZone` and claim `Explore the Forest`.
-- Talk to `GuideNPC` and claim `Meet the Guide`.
-- Charge `MagicCrystal` 3 times and claim `Crystal Power`.
-- Stay in game for 2 minutes and claim `Stay A While`.
-- Open `TreasureChest` and claim `Treasure Hunter`.
-- Collect 10 coins and claim `Daily Collector`.
-- Stop and replay to confirm saved progress loads when Studio API services are enabled.
-
-## Known Limitations
-
-- The generated demo world is intentionally simple and meant for product testing, not a full game map.
-- DataStore writes are throttled and wrapped in `pcall`, but Studio must have API services enabled to persist between sessions.
-- Rewards are added to `leaderstats` as numeric values. Replace `RewardService` if your game uses an inventory or economy service.
-
-## Packaging For Sale
-
-1. Build with `rojo build -o SimpleQuestKit.rbxlx`.
-2. Open the build in Roblox Studio and verify Play Solo.
-3. Move `ReplicatedStorage.SimpleQuestKit`, `ServerScriptService.SimpleQuestKitServer`, `StarterPlayer.StarterPlayerScripts.SimpleQuestKitClient`, and the optional demo workspace folder into a clean place file or model.
-4. Keep `QuestConfig.lua`, `DemoConfig.lua`, `docs/SETUP.md`, and this README with the product.
-5. Publish as a Roblox model or wrap the inserted folders in a plugin installer button.
+- [CHANGELOG.md](CHANGELOG.md)
+- [LICENSE.txt](LICENSE.txt)
+- [docs/PACKAGING.md](docs/PACKAGING.md)
+- [docs/TESTING_CHECKLIST.md](docs/TESTING_CHECKLIST.md)

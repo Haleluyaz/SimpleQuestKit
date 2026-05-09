@@ -1,5 +1,9 @@
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+
+local DemoConfig = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Config"):WaitForChild("DemoConfig"))
+local Debug = DemoConfig.Debug == true
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
@@ -276,4 +280,6 @@ end
 QuestUI:_build()
 _G.SimpleQuestKitUI = QuestUI
 
-print("[SimpleQuestKit] QuestUIController loaded")
+if Debug then
+    print("[SimpleQuestKit] QuestUIController loaded")
+end

@@ -1,7 +1,9 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local DemoConfig = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Config"):WaitForChild("DemoConfig"))
 local QuestConfig = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Config"):WaitForChild("QuestConfig"))
+local Debug = DemoConfig.Debug == true
 
 local DailyQuestService = {
     _questDataService = nil,
@@ -17,7 +19,9 @@ function DailyQuestService:Init()
         end
     end)
 
-    print("[SimpleQuestKit] DailyQuestService initialized")
+    if Debug then
+        print("[SimpleQuestKit] DailyQuestService initialized")
+    end
 end
 
 function DailyQuestService:ResetExpiredDailies(player)

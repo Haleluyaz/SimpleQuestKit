@@ -1,20 +1,22 @@
-local USE_DATA_STORE = false
-
 local DataStoreService = game:GetService("DataStoreService")
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
+local DemoConfig = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Config"):WaitForChild("DemoConfig"))
 local QuestConfig = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Config"):WaitForChild("QuestConfig"))
 local QuestUtil = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Shared"):WaitForChild("QuestUtil"))
+local Debug = DemoConfig.Debug == true
 
-local DATASTORE_NAME = "SimpleQuestKit_v1"
-local SAVE_COOLDOWN = 30
+local DATA_VERSION = 1
+local MAX_RETRIES = 3
 
 local QuestDataService = {
     _playerData = {},
     _lastSaveByUserId = {},
     _store = nil,
-    _useDataStore = USE_DATA_STORE,
+    _useDataStore = DemoConfig.UseDataStore == true,
+    _autoSaveStarted = false,
 }
 
 local function getDefaultQuestState(quest)
@@ -32,7 +34,7 @@ local function normalizeData(data)
         data = {}
     end
 
-    data.Version = data.Version or 1
+    data.DataVersion = tonumber(data.DataVersion or data.Version) or DATA_VERSION
     data.Quests = type(data.Quests) == "table" and data.Quests or {}
     data.Currencies = type(data.Currencies) == "table" and data.Currencies or {}
     data.LastDailyReset = data.LastDailyReset or os.time()
@@ -54,26 +56,85 @@ local function normalizeData(data)
     return data
 end
 
+local function getDataStoreKey(player)
+    return "Player_" .. player.UserId
+end
+
+function QuestDataService:_tryDataStore(actionName, callback)
+    local lastError = nil
+
+    for attempt = 1, MAX_RETRIES do
+        local success, result = pcall(callback)
+
+        if success then
+            return true, result
+        end
+
+        lastError = result
+
+        if attempt < MAX_RETRIES then
+            task.wait(attempt)
+        end
+    end
+
+    return false, lastError
+end
+
+function QuestDataService:_fallbackToMemoryMode(reason)
+    if self._useDataStore then
+        warn("[SimpleQuestKit] QuestDataService falling back to Memory Mode: " .. tostring(reason))
+    end
+
+    self._store = nil
+    self._useDataStore = false
+end
+
+function QuestDataService:_startAutoSave()
+    if self._autoSaveStarted then
+        return
+    end
+
+    self._autoSaveStarted = true
+
+    task.spawn(function()
+        while true do
+            task.wait(tonumber(DemoConfig.AutoSaveInterval) or 60)
+
+            if self._useDataStore then
+                self:SaveAllPlayers(true)
+            end
+        end
+    end)
+end
+
 function QuestDataService:Init()
-    self._useDataStore = USE_DATA_STORE
+    self._useDataStore = DemoConfig.UseDataStore == true
 
     if self._useDataStore then
-        local success, result = pcall(function()
-            return DataStoreService:GetDataStore(DATASTORE_NAME)
+        local success, result = self:_tryDataStore("GetDataStore", function()
+            return DataStoreService:GetDataStore(DemoConfig.DataStoreName or "SimpleQuestKit_PlayerData_v1")
         end)
 
         if success then
             self._store = result
-            print("[SimpleQuestKit] QuestDataService running in DataStore Mode")
+            self:_startAutoSave()
+
+            game:BindToClose(function()
+                self:SaveAllPlayers(true)
+            end)
+
+            if Debug then
+                print("[SimpleQuestKit] QuestDataService running in DataStore Mode")
+            end
             return
         end
 
-        self._store = nil
-        self._useDataStore = false
-        warn("[SimpleQuestKit] QuestDataService DataStore init failed. Falling back to Memory Mode: " .. tostring(result))
+        self:_fallbackToMemoryMode("DataStore init failed: " .. tostring(result))
     end
 
-    print("[SimpleQuestKit] QuestDataService running in Memory Mode")
+    if Debug then
+        print("[SimpleQuestKit] QuestDataService running in Memory Mode")
+    end
 end
 
 function QuestDataService:LoadPlayer(player)
@@ -85,17 +146,17 @@ function QuestDataService:LoadPlayer(player)
         return data
     end
 
-    local key = "Player_" .. player.UserId
+    local key = getDataStoreKey(player)
     local loadedData = nil
 
-    local success, result = pcall(function()
+    local success, result = self:_tryDataStore("GetAsync", function()
         return self._store:GetAsync(key)
     end)
 
     if success then
         loadedData = result
     else
-        warn("[SimpleQuestKit] DataStore load failed for " .. player.Name .. ": " .. tostring(result))
+        self:_fallbackToMemoryMode("load failed for " .. player.Name .. ": " .. tostring(result))
     end
 
     local data = normalizeData(loadedData)
@@ -113,35 +174,49 @@ function QuestDataService:SavePlayer(player, force)
 
     if not self._useDataStore then
         data._Dirty = false
-        if force then
+        if Debug and force then
             print("[SimpleQuestKit] Memory Mode save skipped for " .. player.Name)
         end
         return true
     end
 
-    local now = os.clock()
-    local lastSave = self._lastSaveByUserId[player.UserId] or 0
+    if not force then
+        return true
+    end
 
-    if not force and (not data._Dirty or now - lastSave < SAVE_COOLDOWN) then
+    if not data._Dirty then
         return true
     end
 
     local saveData = QuestUtil.CopyDictionary(data)
     saveData._Dirty = nil
 
-    local key = "Player_" .. player.UserId
-    local success, result = pcall(function()
+    local key = getDataStoreKey(player)
+    local success, result = self:_tryDataStore("SetAsync", function()
         self._store:SetAsync(key, saveData)
     end)
 
     if success then
         data._Dirty = false
-        self._lastSaveByUserId[player.UserId] = now
+        self._lastSaveByUserId[player.UserId] = os.clock()
         return true
     end
 
-    warn("[SimpleQuestKit] DataStore save failed for " .. player.Name .. ": " .. tostring(result))
+    self:_fallbackToMemoryMode("save failed for " .. player.Name .. ": " .. tostring(result))
     return false
+end
+
+function QuestDataService:SaveAllPlayers(force)
+    local allSaved = true
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        local saved = self:SavePlayer(player, force)
+        if not saved then
+            allSaved = false
+        end
+    end
+
+    return allSaved
 end
 
 function QuestDataService:GetData(player)

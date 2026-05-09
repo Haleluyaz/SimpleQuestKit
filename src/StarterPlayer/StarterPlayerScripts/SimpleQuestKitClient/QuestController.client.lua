@@ -2,7 +2,18 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 
 local kit = ReplicatedStorage:WaitForChild("SimpleQuestKit")
+local DemoConfig = require(kit:WaitForChild("Config"):WaitForChild("DemoConfig"))
+local Debug = DemoConfig.Debug == true
 local Remotes = kit:WaitForChild("Remotes")
+local demoCompleteShown = false
+
+local DEMO_COMPLETE_QUESTS = {
+    "talk_to_guide",
+    "welcome_collect_coins",
+    "visit_forest",
+    "crystal_power",
+    "custom_open_chest",
+}
 
 local RequestQuestData = Remotes:WaitForChild("RequestQuestData", 10)
 if not RequestQuestData then
@@ -35,6 +46,28 @@ local function render(data)
     if ui then
         ui:Render(data)
     end
+
+    if demoCompleteShown or not data or not data.PlayerData or not data.PlayerData.Quests then
+        return
+    end
+
+    for _, questId in ipairs(DEMO_COMPLETE_QUESTS) do
+        local questState = data.PlayerData.Quests[questId]
+
+        if not questState or not questState.Completed then
+            return
+        end
+    end
+
+    demoCompleteShown = true
+
+    pcall(function()
+        StarterGui:SetCore("SendNotification", {
+            Title = "Demo Complete",
+            Text = "You completed the key Starter Village quests.",
+            Duration = 6,
+        })
+    end)
 end
 
 local function refresh()
@@ -91,4 +124,6 @@ end)
 
 refresh()
 
-print("[SimpleQuestKit] QuestController loaded")
+if Debug then
+    print("[SimpleQuestKit] QuestController loaded")
+end

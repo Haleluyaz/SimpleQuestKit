@@ -1,14 +1,11 @@
-# UI Placeholder
+# Simple Quest Kit UI
 
-Codex should create the QuestGui in code or provide Roblox Studio setup steps.
+The quest UI is created at runtime by:
 
-Required UI:
-- ScreenGui: QuestGui
-- Button: QuestButton
-- Frame: QuestPanel
-- ScrollingFrame: QuestList
-- QuestCard template
-- Progress bar
-- Claim button
-- Daily section
-- NPC quest section
+```text
+StarterPlayer/StarterPlayerScripts/SimpleQuestKitClient/QuestUIController.client.lua
+```
+
+This keeps installation simple because buyers do not need to wire a ScreenGui manually.
+
+To reskin the UI, edit colors, sizing, and card layout in `QuestUIController.client.lua`.

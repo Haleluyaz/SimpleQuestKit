@@ -1,4 +1,8 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
+local DemoConfig = require(ReplicatedStorage:WaitForChild("SimpleQuestKit"):WaitForChild("Config"):WaitForChild("DemoConfig"))
+local Debug = DemoConfig.Debug == true
+
 local root = ServerScriptService:WaitForChild("SimpleQuestKitServer")
 
 local QuestService = require(root:WaitForChild("QuestService"))
@@ -13,4 +17,6 @@ DailyQuestService:Init()
 QuestService:Init()
 QuestObjectService:Init()
 
-print("[SimpleQuestKit] Server bootstrap loaded")
+if Debug then
+    print("[SimpleQuestKit] Server bootstrap loaded")
+end

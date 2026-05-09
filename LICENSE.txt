@@ -1,0 +1,13 @@
+LICENSE PLACEHOLDER
+
+Replace this file with your final commercial license before selling Simple Quest Kit.
+
+Suggested sections to define:
+
+- What buyers are allowed to use in their Roblox games.
+- Whether buyers can modify the source code.
+- Whether buyers can resell, redistribute, or repackage the kit.
+- Whether the demo assets are included in the license.
+- Warranty and support terms.
+
+This placeholder is not legal advice.

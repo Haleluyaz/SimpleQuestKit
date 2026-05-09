@@ -2,8 +2,10 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local kit = ReplicatedStorage:WaitForChild("SimpleQuestKit")
+local DemoConfig = require(kit:WaitForChild("Config"):WaitForChild("DemoConfig"))
 local QuestConfig = require(kit:WaitForChild("Config"):WaitForChild("QuestConfig"))
 local QuestUtil = require(kit:WaitForChild("Shared"):WaitForChild("QuestUtil"))
+local Debug = DemoConfig.Debug == true
 
 local serverRoot = script.Parent
 local QuestDataService = require(serverRoot:WaitForChild("QuestDataService"))
@@ -121,7 +123,9 @@ function QuestService:Init()
         end
     end)
 
-    print("[SimpleQuestKit] QuestService initialized")
+    if Debug then
+        print("[SimpleQuestKit] QuestService initialized")
+    end
 end
 
 -- Adds progress to a quest from trusted server code only.
