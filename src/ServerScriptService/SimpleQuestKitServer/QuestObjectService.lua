@@ -1,11 +1,16 @@
+-- Connects tagged world objects to quest progress.
+-- Required core file if you want tagged NPCs, pickups, zones, and interactables.
+-- This keeps demo/world interaction logic separate from the core QuestService API.
+
 local CollectionService = game:GetService("CollectionService")
+local Debris = game:GetService("Debris")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
 
 local kit = ReplicatedStorage:WaitForChild("SimpleQuestKit")
 local DemoConfig = require(kit:WaitForChild("Config"):WaitForChild("DemoConfig"))
-local QuestConfig = require(kit:WaitForChild("Config"):WaitForChild("QuestConfig"))
-local QuestUtil = require(kit:WaitForChild("Shared"):WaitForChild("QuestUtil"))
 local Debug = DemoConfig.Debug == true
 
 local QuestService = require(script.Parent:WaitForChild("QuestService"))
@@ -14,12 +19,34 @@ local QuestObjectService = {
     _connections = {},
     _touchDebounce = {},
     _promptDebounce = {},
-    _questMap = QuestUtil.BuildQuestMap(QuestConfig),
+    _initializedInstances = {},
 }
 
+local function getTemporaryEffectsFolder()
+    local folder = Workspace:FindFirstChild("TemporaryEffects")
+
+    if not folder then
+        folder = Instance.new("Folder")
+        folder.Name = "TemporaryEffects"
+        folder.Parent = Workspace
+    end
+
+    return folder
+end
+
 local function getPlayerFromPart(part)
-    local character = part and part.Parent
-    if not character then
+    local character = part and part:FindFirstAncestorOfClass("Model")
+
+    while character and not character:FindFirstChildOfClass("Humanoid") do
+        local parent = character.Parent
+        if parent and parent:IsA("Model") then
+            character = parent
+        else
+            character = parent and parent:FindFirstAncestorOfClass("Model") or nil
+        end
+    end
+
+    if not character or not character:FindFirstChildOfClass("Humanoid") then
         return nil
     end
 
@@ -54,19 +81,59 @@ function QuestObjectService:_connect(instance, connection)
 end
 
 function QuestObjectService:_progressMatchingQuests(player, questType, target, amount)
-    for _, quest in ipairs(QuestConfig.Quests or {}) do
-        local effectiveType = QuestUtil.GetQuestType(quest)
-
-        if effectiveType == questType and quest.Target == target then
-            QuestService:AddProgress(player, quest.Id, amount or 1)
-        end
+    if not player or type(target) ~= "string" or target == "" then
+        return false
     end
+
+    QuestService:AddProgressByTarget(player, target, amount or 1)
+end
+
+function QuestObjectService:_playChestOpen(instance)
+    if instance:GetAttribute("OpenedVisual") then
+        return
+    end
+
+    instance:SetAttribute("OpenedVisual", true)
+
+    local parent = instance.Parent
+    local lid = parent and parent:FindFirstChild(instance.Name .. "_Lid")
+
+    if lid and lid:IsA("BasePart") then
+        TweenService:Create(lid, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), {
+            Position = lid.Position + Vector3.new(0, 1.1, 0.45),
+            Orientation = lid.Orientation + Vector3.new(-25, 0, 0),
+        }):Play()
+    end
+
+    local effectPart = Instance.new("Part")
+    effectPart.Name = "ChestRewardGlow"
+    effectPart.Anchored = true
+    effectPart.CanCollide = false
+    effectPart.CanQuery = false
+    effectPart.CanTouch = false
+    effectPart.Transparency = 1
+    effectPart.Size = Vector3.new(1, 1, 1)
+    effectPart.CFrame = instance.CFrame
+    effectPart.Parent = getTemporaryEffectsFolder()
+
+    local sparkle = Instance.new("PointLight")
+    sparkle.Name = "ChestRewardGlow"
+    sparkle.Color = Color3.fromRGB(255, 219, 92)
+    sparkle.Brightness = 2
+    sparkle.Range = 12
+    sparkle.Parent = effectPart
+    Debris:AddItem(effectPart, 4)
 end
 
 function QuestObjectService:_setupCoin(coin)
     if not coin:IsA("BasePart") then
         return
     end
+
+    if self._initializedInstances[coin] then
+        return
+    end
+    self._initializedInstances[coin] = true
 
     coin.CanTouch = true
 
@@ -102,6 +169,11 @@ function QuestObjectService:_setupZone(zone)
         return
     end
 
+    if self._initializedInstances[zone] then
+        return
+    end
+    self._initializedInstances[zone] = true
+
     zone.CanTouch = true
 
     self:_connect(zone, zone.Touched:Connect(function(hit)
@@ -127,6 +199,11 @@ function QuestObjectService:_setupZone(zone)
 end
 
 function QuestObjectService:_setupPromptObject(instance)
+    if self._initializedInstances[instance] then
+        return
+    end
+    self._initializedInstances[instance] = true
+
     local target = instance:GetAttribute("QuestTarget") or instance.Name
     local prompt = getOrCreatePrompt(instance, instance:GetAttribute("ActionText") or "Interact")
 
@@ -145,8 +222,13 @@ function QuestObjectService:_setupPromptObject(instance)
             end
         elseif instance:GetAttribute("CustomEvent") then
             self:_progressMatchingQuests(player, "CustomEvent", instance:GetAttribute("CustomEvent"), 1)
+            QuestService:AddProgressByTarget(player, "InteractObject", 1)
+            if instance.Name == "TreasureChest" then
+                self:_playChestOpen(instance)
+            end
         else
             self:_progressMatchingQuests(player, "Interact", target, 1)
+            QuestService:AddProgressByTarget(player, "InteractObject", 1)
         end
 
         task.delay(0.75, function()
